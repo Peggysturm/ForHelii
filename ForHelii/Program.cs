@@ -2,41 +2,32 @@
 using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
-using System.Timers;
 
 class Program
 {
-    static string[] compliments;
-    static int dayOfYear => DateTime.UtcNow.DayOfYear;
-    static string telegramToken = Environment.GetEnvironmentVariable("7609997966:AAHE8iYn2UTDTM_d5xhHr6LUoPbvm1y1uJ0");
-    static string chatId = Environment.GetEnvironmentVariable("7709327999");
-
     static async Task Main()
     {
-        compliments = File.ReadAllLines("compliments.txt");
-        await SendCompliment();
+        string[] compliments = await File.ReadAllLinesAsync("compliments.txt");
 
-        var timer = new System.Timers.Timer(TimeSpan.FromDays(1).TotalMilliseconds);
-        timer.Elapsed += async (s, e) => await SendCompliment();
-        timer.Start();
+        string token = Environment.GetEnvironmentVariable("TELEGRAM_BOT_TOKEN");
+        string chatId = Environment.GetEnvironmentVariable("TELEGRAM_CHAT_ID");
 
-        Console.WriteLine("Bot is running...");
-        await Task.Delay(-1); // Keep app running
-    }
-
-    static async Task SendCompliment()
-    {
-        if (dayOfYear <= compliments.Length)
+        if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(chatId))
         {
-            string compliment = compliments[dayOfYear - 1];
-            using var client = new HttpClient();
-            string url = $"https://api.telegram.org/bot{telegramToken}/sendMessage?chat_id={chatId}&text={Uri.EscapeDataString(compliment)}";
-            await client.GetAsync(url);
-            Console.WriteLine($"Sent: {compliment}");
+            Console.WriteLine("Env variables not set");
+            return;
         }
-        else
-        {
-            Console.WriteLine("No compliment found for this day.");
-        }
+
+        int index = (DateTime.UtcNow.DayOfYear - 1) % compliments.Length;
+        string compliment = compliments[index];
+
+        using var client = new HttpClient();
+        string url = $"https://api.telegram.org/bot{token}/sendMessage?chat_id={chatId}&text={Uri.EscapeDataString(compliment)}";
+        await client.GetAsync(url);
+
+        Console.WriteLine($"Sent: {compliment}");
+
+        // Ждём бесконечно — чтобы контейнер не закрылся
+        await Task.Delay(-1);
     }
 }
