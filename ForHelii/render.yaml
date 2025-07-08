@@ -1,12 +1,10 @@
 ﻿services:
   - type: worker
     name: compliment-bot
-    env: dotnet
-    buildCommand: dotnet build
-    startCommand: dotnet run
+    runtime: docker
     autoDeploy: true
     envVars:
-      - key: TELEGRAM_BOT_TOKEN
+      - key: 7609997966:AAHE8iYn2UTDTM_d5xhHr6LUoPbvm1y1uJ0
         sync: false
-      - key: TELEGRAM_CHAT_ID
+      - key: "7709327999"
         sync: false
