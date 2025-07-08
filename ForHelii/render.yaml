@@ -1,6 +1,7 @@
 ﻿services:
   - type: worker
     name: compliment-bot
+    rootDir: ForHelii
     runtime: docker
     autoDeploy: true
     envVars:
