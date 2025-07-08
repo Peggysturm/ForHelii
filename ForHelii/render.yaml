@@ -4,7 +4,7 @@
     runtime: docker
     autoDeploy: true
     envVars:
-      - key: 7609997966:AAHE8iYn2UTDTM_d5xhHr6LUoPbvm1y1uJ0
+      - key: TELEGRAM_BOT_TOKEN
         sync: false
-      - key: "7709327999"
+      - key: TELEGRAM_CHAT_ID
         sync: false
