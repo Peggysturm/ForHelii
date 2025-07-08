@@ -1,0 +1,12 @@
+﻿services:
+  - type: worker
+    name: compliment-bot
+    env: dotnet
+    buildCommand: dotnet build
+    startCommand: dotnet run
+    autoDeploy: true
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
