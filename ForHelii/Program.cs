@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.Net.Http;
+using System.Net;
+using System.Text;
 using System.Threading.Tasks;
 
 class Program
@@ -27,7 +29,29 @@ class Program
 
         Console.WriteLine($"Sent: {compliment}");
 
-        // Ждём бесконечно — чтобы контейнер не закрылся
+        // Запускаем фейковый HTTP-сервер для Render
+        var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+        var listener = new HttpListener();
+        listener.Prefixes.Add($"http://*:{port}/");
+        listener.Start();
+
+        Console.WriteLine($"Fake HTTP server started on port {port}");
+
+        // Обрабатываем пустые запросы, чтобы Render считал, что всё работает
+        _ = Task.Run(async () =>
+        {
+            while (true)
+            {
+                var context = await listener.GetContextAsync();
+                var response = context.Response;
+                var buffer = Encoding.UTF8.GetBytes("Bot is running");
+                response.ContentLength64 = buffer.Length;
+                await response.OutputStream.WriteAsync(buffer, 0, buffer.Length);
+                response.Close();
+            }
+        });
+
+        // Ждём бесконечно — контейнер жив, Render доволен
         await Task.Delay(-1);
     }
 }
