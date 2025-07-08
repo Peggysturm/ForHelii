@@ -3,8 +3,9 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /app
 
 # Копируем файлы проекта и компилируем
-COPY *.csproj ./
-RUN dotnet restore
+COPY ComplimentBot.csproj ./
+RUN dotnet restore "ComplimentBot.csproj"
+
 
 COPY . ./
 RUN dotnet publish -c Release -o out
