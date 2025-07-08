@@ -3,4 +3,10 @@
 		<OutputType>Exe</OutputType>
 		<TargetFramework>net8.0</TargetFramework>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<Content Include="compliments.txt">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
 </Project>
