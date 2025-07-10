@@ -17,7 +17,7 @@ class Program
 
         string token = Environment.GetEnvironmentVariable("TELEGRAM_BOT_TOKEN");
         string chatId = Environment.GetEnvironmentVariable("TELEGRAM_CHAT_ID");
-        string sendTime = Environment.GetEnvironmentVariable("SEND_TIME") ?? "11:30"; // Default to 9:00 AM UTC
+        string sendTime = Environment.GetEnvironmentVariable("SEND_TIME") ?? "11:30"; // Default to 11:30 AM UTC
 
         if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(chatId))
         {
@@ -28,8 +28,8 @@ class Program
         // Parse the send time
         if (!TimeSpan.TryParse(sendTime, out TimeSpan targetTime))
         {
-            Console.WriteLine("Invalid SEND_TIME format. Using default 09:00");
-            targetTime = TimeSpan.Parse("09:00");
+            Console.WriteLine("Invalid SEND_TIME format. Using default 11:30");
+            targetTime = TimeSpan.Parse("11:30");
         }
 
         // Set up timer to send compliment daily
