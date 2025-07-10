@@ -11,8 +11,4 @@
 		</Content>
 	</ItemGroup>
 
-	<ItemGroup>
-		<PackageReference Include="Telegram.Bot" Version="xx.xx.xx" />
-	</ItemGroup>
-
 </Project>
