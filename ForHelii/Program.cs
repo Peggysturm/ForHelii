@@ -17,6 +17,7 @@ class Program
 
         string token = Environment.GetEnvironmentVariable("TELEGRAM_BOT_TOKEN");
         string chatId = Environment.GetEnvironmentVariable("TELEGRAM_CHAT_ID");
+        string ownerChatId = Environment.GetEnvironmentVariable("OWNER_CHAT_ID"); // Новый chat ID для уведомлений владельцу
         string sendTime = Environment.GetEnvironmentVariable("SEND_TIME") ?? "11:30"; // Default to 11:30 AM UTC
 
         if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(chatId))
@@ -34,7 +35,7 @@ class Program
 
         // Set up timer to send compliment daily
         timer = new System.Timers.Timer();
-        timer.Elapsed += async (sender, e) => await SendCompliment(compliments, token, chatId);
+        timer.Elapsed += async (sender, e) => await SendCompliment(compliments, token, chatId, ownerChatId);
         timer.Interval = CalculateInitialDelay(targetTime);
         timer.AutoReset = true; // Repeat daily
         timer.Start();
@@ -50,24 +51,35 @@ class Program
         Console.WriteLine($"Fake HTTP server started on port {port}");
 
         // Handle empty requests for Render
+        // Добавьте это в Main после запуска HTTP сервера
         _ = Task.Run(async () =>
         {
-            while (true)
+            var appUrl = Environment.GetEnvironmentVariable("RENDER_EXTERNAL_URL");
+            if (!string.IsNullOrEmpty(appUrl))
             {
-                var context = await listener.GetContextAsync();
-                var response = context.Response;
-                var buffer = Encoding.UTF8.GetBytes("Bot is running");
-                response.ContentLength64 = buffer.Length;
-                await response.OutputStream.WriteAsync(buffer, 0, buffer.Length);
-                response.Close();
+                while (true)
+                {
+                    try
+                    {
+                        await client.GetAsync($"{appUrl}/health");
+                        Console.WriteLine($"[{DateTime.UtcNow}] Self-ping successful");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Self-ping error: {ex.Message}");
+                    }
+
+                    await Task.Delay(TimeSpan.FromMinutes(10)); // Пинг каждые 10 минут
+                }
             }
         });
+
 
         // Keep container alive
         await Task.Delay(-1);
     }
 
-    private static async Task SendCompliment(string[] compliments, string token, string chatId)
+    private static async Task SendCompliment(string[] compliments, string token, string chatId, string ownerChatId)
     {
         try
         {
@@ -80,6 +92,27 @@ class Program
             if (response.IsSuccessStatusCode)
             {
                 Console.WriteLine($"Sent: {compliment}");
+
+                // Отправка уведомления владельцу
+                if (!string.IsNullOrEmpty(ownerChatId))
+                {
+                    string notification = $"Комплимент отправлен: {compliment}";
+                    string ownerUrl = $"https://api.telegram.org/bot{token}/sendMessage?chat_id={ownerChatId}&text={Uri.EscapeDataString(notification)}";
+                    var ownerResponse = await client.GetAsync(ownerUrl);
+
+                    if (ownerResponse.IsSuccessStatusCode)
+                    {
+                        Console.WriteLine($"Notification sent to owner: {notification}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Failed to send notification to owner: {ownerResponse.StatusCode}");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("OWNER_CHAT_ID not set, skipping notification");
+                }
             }
             else
             {
