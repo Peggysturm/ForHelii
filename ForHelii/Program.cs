@@ -50,6 +50,31 @@ class Program
 
         Console.WriteLine($"Fake HTTP server started on port {port}");
 
+        // Асинхронная обработка запросов для fake HTTP сервера
+        _ = Task.Run(async () =>
+        {
+            while (true)
+            {
+                try
+                {
+                    var context = await listener.GetContextAsync();
+                    var response = context.Response;
+                    response.StatusCode = (int)HttpStatusCode.OK;
+                    response.ContentType = "text/plain";
+                    string responseString = "OK"; // Простой ответ для health-check
+                    byte[] buffer = Encoding.UTF8.GetBytes(responseString);
+                    response.ContentLength64 = buffer.Length;
+                    await response.OutputStream.WriteAsync(buffer, 0, buffer.Length);
+                    response.OutputStream.Close();
+                    Console.WriteLine($"Handled request: {context.Request.Url}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error handling request: {ex.Message}");
+                }
+            }
+        });
+
         // Handle empty requests for Render
         // Добавьте это в Main после запуска HTTP сервера
         _ = Task.Run(async () =>
