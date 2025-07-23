@@ -21,7 +21,8 @@ class Program
         string chatId = Environment.GetEnvironmentVariable("TELEGRAM_CHAT_ID");
         string ownerChatId = Environment.GetEnvironmentVariable("OWNER_CHAT_ID");
         string unsplashKey = Environment.GetEnvironmentVariable("UNSPLASH_ACCESS_KEY");
-        string sendTime = Environment.GetEnvironmentVariable("SEND_TIME") ?? "16:15";
+        string sendTime = Environment.GetEnvironmentVariable("SEND_TIME") ?? "16:50"; // Локальное время в Базеле
+        string timeZoneId = Environment.GetEnvironmentVariable("TIME_ZONE") ?? "Europe/Zurich"; // Часовой пояс Базеля
 
         if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(chatId))
         {
@@ -37,18 +38,18 @@ class Program
         // Parse the send time
         if (!TimeSpan.TryParse(sendTime, out TimeSpan targetTime))
         {
-            Console.WriteLine("Invalid SEND_TIME format. Using default 16:15");
-            targetTime = TimeSpan.Parse("16:15");
+            Console.WriteLine("Invalid SEND_TIME format. Using default 16:50");
+            targetTime = TimeSpan.Parse("16:50");
         }
 
         // Set up timer to send compliment daily
         timer = new System.Timers.Timer();
         timer.Elapsed += async (sender, e) => await SendComplimentWithImage(compliments, token, chatId, ownerChatId, unsplashKey);
-        timer.Interval = CalculateInitialDelay(targetTime);
+        timer.Interval = CalculateInitialDelay(targetTime, timeZoneId);
         timer.AutoReset = true;
         timer.Start();
 
-        Console.WriteLine($"Scheduled to send compliments with cat images daily at {targetTime}");
+        Console.WriteLine($"Scheduled to send compliments with cat images daily at {targetTime} in {timeZoneId}");
 
         // Start fake HTTP server for Render
         var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
@@ -305,18 +306,35 @@ class Program
         }
     }
 
-    private static double CalculateInitialDelay(TimeSpan targetTime)
+    private static double CalculateInitialDelay(TimeSpan targetTime, string timeZoneId)
     {
-        var now = DateTime.UtcNow;
-        var target = DateTime.Today.Add(targetTime);
-
-        // If target time has passed today, schedule for tomorrow
-        if (target < now)
+        try
         {
-            target = target.AddDays(1);
-        }
+            var timeZone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+            var nowUtc = DateTime.UtcNow;
+            var localNow = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, timeZone);
+            var targetLocal = localNow.Date.Add(targetTime);
 
-        Console.WriteLine($"Next send scheduled at: {target:yyyy-MM-dd HH:mm:ss} UTC");
-        return (target - now).TotalMilliseconds;
+            // If target time has passed today, schedule for tomorrow
+            if (targetLocal < localNow)
+            {
+                targetLocal = targetLocal.AddDays(1);
+            }
+
+            var targetUtc = TimeZoneInfo.ConvertTimeToUtc(targetLocal, timeZone);
+            var delay = (targetUtc - nowUtc).TotalMilliseconds;
+
+            Console.WriteLine($"Next send scheduled at: {targetLocal:yyyy-MM-dd HH:mm:ss} local time ({timeZoneId}) / {targetUtc:yyyy-MM-dd HH:mm:ss} UTC");
+            return delay;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error calculating delay for time zone {timeZoneId}: {ex.Message}. Falling back to UTC.");
+            // Fallback to UTC if time zone is invalid
+            var now = DateTime.UtcNow;
+            var target = DateTime.UtcNow.Date.Add(targetTime);
+            if (target < now) target = target.AddDays(1);
+            return (target - now).TotalMilliseconds;
+        }
     }
 }
